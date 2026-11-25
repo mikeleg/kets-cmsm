@@ -16,6 +16,10 @@ _Avoid_: Customer, user, editor
 The running CMS of one **Site**, with its own data. Each Site has exactly one Installation.
 _Avoid_: Instance, deployment, tenant
 
+**Account**:
+A person who can sign in to the admin of one **Installation**. All Accounts have the same rights. An Account can belong to the **Client** or to the developer.
+_Avoid_: User, login, admin
+
 **Page**:
 A page of a **Site**. A Page is a list of **Blocks**. A Page can have child Pages, so the Pages of a Site make a tree.
 _Avoid_: Screen, view
