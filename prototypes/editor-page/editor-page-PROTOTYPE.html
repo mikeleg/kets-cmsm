@@ -1,0 +1,323 @@
+<!-- Prototipo UI usa e getta: tre varianti dell'editor delle Page per il Client, switchabili con ?variant=A|B|C. Nessun backend: stato in memoria. -->
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Editor delle Page – prototipo</title>
+<style>
+:root{--ac:#2f5bea;--acd:#2449c2;--acs:#e8eefe;--bg:#f4f5f8;--tx:#1d2330;--mu:#6b7385;--bd:#e1e4ea;--ok:#1d7a4a;--okb:#e3f4ea;--wa:#8a5a00;--wab:#fff1d6;--er:#c0392b;--r:8px}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--tx);background:var(--bg)}
+[hidden]{display:none!important}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:1px solid var(--bd);background:#fff;border-radius:6px;padding:6px 12px}
+button:hover:not(:disabled){background:#eef0f5}button:disabled{opacity:.35;cursor:default}
+.pri{background:var(--ac);border-color:var(--ac);color:#fff}.pri:hover:not(:disabled){background:var(--acd)}
+.ic{padding:4px 9px;min-width:32px}.wide{width:100%;padding:12px}.mu{color:var(--mu)}small{color:var(--mu)}
+input,select,textarea,.rich{width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:6px;background:#fff;display:block}
+input:disabled,textarea:disabled{background:#f1f2f5}
+.bad{border-color:var(--er)!important}.err{color:var(--er);font-size:13px;margin-top:4px}.req{color:var(--er)}
+.f{margin-bottom:18px}.f>label{display:block;font-weight:600;font-size:13px;margin-bottom:5px}
+.f input+.err,.f textarea+.err{margin-bottom:2px}.f .two{margin-top:4px}.f input{margin-top:6px}.f .two input{margin-top:0}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.img{background:#d9dce3;color:#555;display:flex;align-items:center;justify-content:center;text-align:center;font-size:12px;min-height:90px;border-radius:6px;padding:8px;margin-bottom:6px}
+.tb{display:flex;gap:4px;margin-bottom:4px;flex-wrap:wrap}.tb button{padding:2px 9px;font-size:13px}
+.rich{min-height:90px;line-height:1.5}.rich h2,.rich h3{margin:.4em 0}
+.li{border:1px solid var(--bd);border-radius:6px;padding:12px 12px 2px;margin-bottom:10px;background:#fafbfc}
+.lih{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}.lih button{padding:2px 8px;font-size:13px}
+.bd{display:inline-block;padding:1px 10px;border-radius:99px;font-size:12px;font-weight:600;white-space:nowrap}
+.bd.ok{background:var(--okb);color:var(--ok)}.bd.wa{background:var(--wab);color:var(--wa);border:1px dashed #d9a441}
+.dirty{color:var(--wa);font-size:13px}
+#toast{position:fixed;left:50%;bottom:70px;transform:translateX(-50%);background:#1d2330;color:#fff;padding:10px 16px;border-radius:8px;z-index:100;max-width:92vw;box-shadow:0 6px 20px #0004}
+#toast button{margin-left:10px;background:transparent;color:#9db4ff;border-color:#9db4ff;padding:2px 10px}
+#sw{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);background:#111;color:#fff;border-radius:99px;display:flex;align-items:center;gap:6px;padding:5px;z-index:101;box-shadow:0 4px 16px #0005;font-size:13px}
+#sw button{background:#333;color:#fff;border:0;border-radius:99px;width:30px;height:30px;padding:0}#sw span{padding:0 8px;min-width:150px;text-align:center}
+#sd{position:fixed;left:12px;bottom:14px;background:#fff;border:1px solid var(--bd);border-radius:8px;font-size:12px;z-index:100;max-width:330px;box-shadow:0 2px 10px #0002}
+#sd summary{cursor:pointer;padding:6px 10px;color:var(--mu)}#st{padding:0 10px 8px;max-height:45vh;overflow:auto}
+#st hr{border:0;border-top:1px solid var(--bd)}
+/* A */
+.vA{display:grid;grid-template-columns:310px 1fr;min-height:100vh}
+.vA aside{background:#fff;border-right:1px solid var(--bd);padding:18px 12px 140px}.vA aside h2{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--mu);margin:0 8px 10px}
+.tr{display:flex;justify-content:space-between;gap:6px;align-items:center;padding:7px 10px;border-radius:6px;cursor:pointer}.tr:hover{background:#f1f3f7}.tr.on{background:var(--acs);font-weight:600}
+.mvs{display:flex;gap:4px;align-items:center;margin:4px 0 8px;flex-wrap:wrap}.mvs select{width:auto;flex:1;padding:4px 6px;font-size:13px}
+.vA main{padding:20px 32px 150px;max-width:900px;width:100%}
+.top{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:18px}.top h1{margin:0;font-size:24px}.sub{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:4px;color:var(--mu)}.acts{display:flex;gap:8px;flex-wrap:wrap}
+.blk{background:#fff;border:1px solid var(--bd);border-radius:var(--r);margin-bottom:10px}.blk.bad{border-color:var(--er)}
+.bh{display:flex;align-items:center;gap:6px;padding:4px 8px}.bt{flex:1;display:flex;gap:10px;align-items:center;border:0;background:none;text-align:left;padding:8px;min-width:0}.bt:hover{background:none!important}
+.sum{color:var(--mu);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;flex:1}.grip{cursor:grab;color:var(--mu);padding:0 6px;user-select:none}
+.ti{display:inline-flex;width:28px;height:28px;align-items:center;justify-content:center;background:var(--acs);color:var(--ac);border-radius:6px;font-weight:700;flex:none}
+.bf{padding:16px 22px 8px;border-top:1px solid var(--bd)}
+.picker{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.picker button{display:grid;grid-template-columns:34px 1fr;text-align:left;gap:0 8px;padding:10px}.picker .ti{grid-row:span 2}.picker small{grid-column:2}
+/* B */
+.btop{position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid var(--bd);padding:10px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}.btop select{width:230px;font-weight:600}.sp{flex:1}
+.bbody{display:flex;align-items:flex-start}.cv{flex:1;padding:28px 24px 150px;min-width:0}
+.pn{width:380px;flex:none;position:sticky;top:58px;height:calc(100vh - 58px);overflow:auto;background:#fff;border-left:1px solid var(--bd);padding:16px 18px 100px}
+.ph{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}.pfoot{display:flex;gap:8px}
+.site{max-width:880px;margin:0 auto;background:#fff;border:1px solid var(--bd);border-radius:10px;box-shadow:0 4px 20px #0001;padding-bottom:20px}
+.sh{display:flex;justify-content:space-between;padding:14px 28px;border-bottom:1px solid var(--bd);font-size:14px}
+.ins{height:16px;margin:-8px 0;position:relative;z-index:3;text-align:center}.ins>button{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:26px;height:26px;border-radius:50%;padding:0;background:var(--ac);color:#fff;border:0;opacity:0}
+.ins:hover>button,.ins.open>button{opacity:1}.ins::before{content:"";position:absolute;left:0;right:0;top:50%;border-top:1px dashed transparent}.ins:hover::before{border-color:var(--ac)}
+.pop{position:absolute;top:22px;left:50%;transform:translateX(-50%);background:#fff;border:1px solid var(--bd);box-shadow:0 6px 24px #0003;border-radius:8px;padding:8px;display:grid;grid-template-columns:1fr 1fr;gap:6px;width:340px;z-index:10}.pop button{text-align:left}
+.vb{position:relative;outline:2px solid transparent;outline-offset:-2px;cursor:pointer}.vb:hover{outline-color:#b9c7f8}.vb.on{outline-color:var(--ac)}.vb.bad{outline-color:var(--er)}
+.tbar{position:absolute;top:8px;right:8px;display:none;gap:4px;align-items:center;background:#fff;border:1px solid var(--bd);border-radius:6px;padding:3px;z-index:3;box-shadow:0 2px 8px #0003;font-size:12px}.tbar span{padding:0 6px;color:var(--mu)}.tbar button{padding:2px 8px;font-size:13px}.vb:hover .tbar,.vb.on .tbar{display:flex}
+.v-hero{position:relative;min-height:250px;color:#fff;display:flex}.v-hero .img{position:absolute;inset:0;background:#6b7385;color:#cfd3dc;margin:0;border-radius:0}.hx{position:relative;padding:44px 40px;margin:auto 0;max-width:600px}.hx h1{margin:0 0 8px;font-size:34px;line-height:1.15}.hx p{margin:0 0 16px;font-size:17px}
+.cta{display:inline-block;background:var(--ac);color:#fff;padding:8px 18px;border-radius:6px;font-weight:600}
+.v-text{padding:28px 40px;max-width:720px}.v-ti{display:flex;gap:28px;padding:28px 40px;align-items:center}.v-ti>*{flex:1}.v-ti .img{min-height:170px}.v-ti.rev{flex-direction:row-reverse}
+.v-gal{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:24px 40px}.v-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:16px;padding:24px 40px}
+.vc{border:1px solid var(--bd);border-radius:8px;padding:12px}.vc h3{margin:6px 0 2px;font-size:16px}.vc p{margin:0 0 6px;color:var(--mu);font-size:14px}.vc a{color:var(--ac);font-size:14px}
+.v-cta{background:var(--acs);text-align:center;padding:36px 40px}.v-cta h2{margin:0 0 6px}.v-cta p{margin:0 0 14px}
+.v-faq{padding:24px 40px}.v-faq details{border-bottom:1px solid var(--bd);padding:10px 0}.v-faq summary{font-weight:600;cursor:pointer}.v-faq p{margin:6px 0 0;color:var(--mu)}
+.v-form{padding:28px 40px;max-width:640px}.v-form .two,.v-form textarea{margin-bottom:8px}
+/* C */
+.vC{max-width:480px;margin:0 auto;min-height:100vh;background:#fff;border:1px solid var(--bd);border-width:0 1px;padding-bottom:170px}
+.vC header{position:sticky;top:0;background:#fff;z-index:10;display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--bd)}.vC header h1{font-size:17px;margin:0;flex:1}
+.cb{padding:16px}.crow{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--bd);cursor:pointer}.crow>div{flex:1;min-width:0}.crow small{display:block}
+.brow{display:flex;align-items:center;gap:8px;border:1px solid var(--bd);border-radius:10px;margin-bottom:8px;padding:6px 8px}.bmain{flex:1;display:flex;gap:10px;align-items:center;padding:6px;cursor:pointer;min-width:0}.bmain div{min-width:0}.bmain b,.bmain small{display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.bmain em{color:var(--er);font-size:12px;font-style:normal}
+.bar{position:fixed;bottom:64px;left:50%;transform:translateX(-50%);width:min(480px,100%);background:#fff;border-top:1px solid var(--bd);padding:10px 14px;display:flex;gap:8px;z-index:50;box-shadow:0 -4px 12px #0001}.bar button{flex:1;padding:10px 6px}
+.tap{width:100%;display:flex;justify-content:space-between;text-align:left;padding:14px;margin-bottom:10px}.tpick{display:grid;grid-template-columns:34px 1fr;text-align:left;width:100%;gap:0 10px;padding:12px;margin-bottom:8px}.tpick .ti{grid-row:span 2}
+</style></head><body>
+<div id="app"></div>
+<details id="sd"><summary>Stato (prototipo)</summary><div id="st"></div></details>
+<div id="toast" hidden></div>
+<div id="sw"><button id="pv" title="Variante precedente">←</button><span id="sl"></span><button id="nx" title="Variante successiva">→</button></div>
+<script>
+/* ===== Dati condivisi: tipi di Block, Page, stato in memoria ===== */
+const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
+const uid=()=>Math.random().toString(36).slice(2,8);
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const strip=h=>String(h||"").replace(/<[^>]*>/g," ").replace(/&nbsp;/g," ").trim();
+const get=(o,p)=>p.split(".").reduce((a,k)=>a?.[k],o);
+const set=(o,p,v)=>{const k=p.split("."),l=k.pop();k.reduce((a,x)=>a[x],o)[l]=v};
+const IMGF={k:"img",l:"Immagine",t:"img"},LNK={k:"link",l:"Link",t:"link"};
+const T={
+ hero:{n:"Hero",i:"▀",d:"Grande immagine con titolo e pulsante in cima alla Page.",f:[{k:"titolo",l:"Titolo",t:"text",r:1},{k:"sottotitolo",l:"Sottotitolo",t:"area"},{k:"immagine",l:"Immagine",t:"img"},{k:"cta",l:"Link CTA",t:"link"}]},
+ testo:{n:"Testo",i:"¶",d:"Un blocco di testo formattato.",f:[{k:"testo",l:"Testo",t:"rich",r:1}]},
+ testoimg:{n:"Testo e immagine",i:"◧",d:"Testo accanto a un'immagine, a sinistra o a destra.",f:[{k:"titolo",l:"Titolo",t:"text",r:1},{k:"testo",l:"Testo",t:"rich",r:1},{k:"immagine",l:"Immagine",t:"img"},{k:"pos",l:"Posizione immagine",t:"choice",o:["sinistra","destra"]}]},
+ galleria:{n:"Galleria",i:"▦",d:"Una griglia di immagini.",f:[{k:"immagini",l:"Immagini",t:"list",it:"Immagine",pl:"immagini",s:[{...IMGF,r:1}]}]},
+ card:{n:"Card",i:"▤",d:"Più riquadri affiancati con immagine, titolo e link.",f:[{k:"card",l:"Card",t:"list",it:"Card",pl:"card",s:[IMGF,{k:"titolo",l:"Titolo",t:"text",r:1},{k:"testo",l:"Testo",t:"area"},LNK]}]},
+ cta:{n:"Call to action",i:"➜",d:"Un invito a fare un'azione, con un pulsante.",f:[{k:"titolo",l:"Titolo",t:"text",r:1},{k:"testo",l:"Testo",t:"area"},{...LNK,l:"Pulsante",r:1}]},
+ faq:{n:"FAQ",i:"?",d:"Domande frequenti con le risposte.",f:[{k:"voci",l:"Domande e risposte",t:"list",it:"Domanda",pl:"domande",s:[{k:"d",l:"Domanda",t:"text",r:1},{k:"r",l:"Risposta",t:"area",r:1}]}]},
+ form:{n:"Form contatti",i:"✉",d:"Il modulo per scrivere allo studio.",f:[{k:"titolo",l:"Titolo",t:"text",r:1},{k:"intro",l:"Testo introduttivo",t:"area"},{k:"fisso",l:"Campi del modulo (fissi)",t:"fixed",v:"Nome, Email, Messaggio, consenso privacy"}]}
+};
+const PF=[{k:"title",l:"Titolo della Page",t:"text",r:1},{k:"slug",l:"Indirizzo (slug)",t:"text",r:1},{k:"seo.title",l:"Titolo SEO",t:"text"},{k:"seo.description",l:"Descrizione SEO",t:"area"}];
+const pf=p=>p.id=="home"?PF.filter(f=>f.k!="slug"):PF;
+const defs=fs=>Object.fromEntries(fs.map(f=>[f.k,f.t=="img"?{alt:""}:f.t=="link"?{label:"",url:""}:f.t=="list"?[]:f.t=="choice"?f.o[0]:""]));
+const mk=(t,d={})=>({id:uid(),type:t,data:{...defs(T[t].f),...d}});
+const im=a=>({alt:a}),ln=(l,u)=>({label:l,url:u});
+const hero=(t,s,a,l)=>mk("hero",{titolo:t,sottotitolo:s,immagine:im(a),cta:l?ln(l,"/contatti"):ln("","")});
+const cards=a=>mk("card",{card:a.map(([i,t,x])=>({img:im(i),titolo:t,testo:x,link:ln("Scopri di più","/servizi")}))});
+const faq=a=>mk("faq",{voci:a.map(([d,r])=>({d,r}))});
+const P=[
+ {id:"home",title:"Home",slug:"",status:"published",parent:null,seo:{title:"Studio Bianchi – Consulenza per piccole imprese",description:"Consulenza aziendale chiara e concreta."},blocks:[
+  hero("Consulenza chiara per la tua impresa","Affianchiamo piccole imprese e professionisti con consigli concreti.","Titolari dello studio in riunione con un cliente","Prenota un incontro"),
+  cards([["Una scrivania con grafici","Consulenza strategica","Un piano chiaro per far crescere l'attività."],["Un tablet con un bilancio","Controllo di gestione","Numeri sotto controllo, decisioni più sicure."],["Un'aula con partecipanti","Formazione","Corsi pratici per te e per il tuo team."]]),
+  mk("testoimg",{titolo:"Uno studio a misura di piccola impresa",testo:"<p>Dal 2004 aiutiamo artigiani, negozi e professionisti a fare ordine nei conti e nelle idee.</p>",immagine:im("Lo studio visto dalla strada"),pos:"sinistra"}),
+  mk("cta",{titolo:"Parliamone insieme",testo:"Il primo incontro è gratuito e senza impegno.",link:ln("Scrivici","/contatti")})]},
+ {id:"chi",title:"Chi siamo",slug:"chi-siamo",status:"published",parent:null,seo:{title:"Chi siamo – Studio Bianchi",description:"Il team dello studio."},blocks:[
+  hero("Chi siamo","Tre professionisti, un metodo semplice.","Il team dello studio davanti alla sede",""),
+  mk("testo",{testo:"<h2>La nostra storia</h2><p>Lo studio nasce nel 2004 da <b>Anna Bianchi</b>. Oggi siamo in tre e seguiamo oltre 120 clienti.</p>"}),
+  mk("testoimg",{titolo:"Il nostro metodo",testo:"<p>Ascoltiamo, analizziamo, proponiamo. Sempre con parole semplici.</p>",immagine:im("Una riunione di lavoro"),pos:"destra"}),
+  mk("galleria",{immagini:["Lo studio","La sala riunioni","Il team","Un corso di formazione"].map(a=>({img:im(a)}))})]},
+ {id:"serv",title:"Servizi",slug:"servizi",status:"published",parent:null,seo:{title:"Servizi – Studio Bianchi",description:"Tutti i servizi dello studio."},blocks:[
+  hero("I nostri servizi","Dalla strategia alla formazione.","Una scrivania con documenti","") ,
+  mk("testo",{testo:"<p>Ogni servizio parte da un incontro gratuito, per capire di cosa hai bisogno.</p>"}),
+  cards([["Una lavagna con appunti","Consulenza","Un confronto su obiettivi e priorità."],["Un foglio di calcolo","Controllo di gestione","Report mensili comprensibili."]]),
+  faq([["Quanto costa il primo incontro?","Nulla: il primo incontro è gratuito."],["Lavorate anche online?","Sì, con videochiamate e documenti condivisi."]])]},
+ {id:"cons",title:"Consulenza",slug:"consulenza",status:"published",parent:"serv",seo:{title:"Consulenza – Studio Bianchi",description:"La consulenza strategica."},blocks:[
+  hero("Consulenza strategica","Un piano chiaro in poche settimane.","Un consulente spiega un grafico","Richiedi informazioni"),
+  mk("testoimg",{titolo:"Come lavoriamo",testo:"<p>Un incontro per capire, uno per proporre, uno per partire.</p>",immagine:im("Due persone al tavolo"),pos:"sinistra"}),
+  mk("form",{titolo:"Richiedi un incontro",intro:"Scrivici e ti rispondiamo entro un giorno lavorativo."})]},
+ {id:"nuovo",title:"Nuovo servizio",slug:"nuovo-servizio",status:"draft",parent:"serv",seo:{title:"",description:""},blocks:[
+  hero("Nuovo servizio in arrivo","Stiamo preparando qualcosa di nuovo.","Un cantiere con una gru",""),
+  mk("testo",{testo:"<p>Testo ancora da scrivere.</p>"})]},
+ {id:"cont",title:"Contatti",slug:"contatti",status:"published",parent:null,seo:{title:"Contatti – Studio Bianchi",description:"Come raggiungerci."},blocks:[
+  hero("Contatti","Siamo in via Roma 12, Bergamo.","La facciata dello studio",""),
+  mk("form",{titolo:"Scrivici",intro:"Compila il modulo: ti richiamiamo noi."}),
+  mk("testo",{testo:"<p>Telefono 035 000000<br>Dal lunedì al venerdì, 9–18.</p>"})]}
+];
+let sel="home",V,dirty={},errs={},pageErr={};
+const page=id=>P.find(p=>p.id==id),pg=()=>page(sel),kids=id=>P.filter(p=>p.parent==id);
+const flat=(par=null,d=0)=>kids(par).flatMap(k=>[{p:k,d},...flat(k.id,d+1)]);
+const desc=id=>kids(id).flatMap(k=>[k.id,...desc(k.id)]);
+const path=p=>p.id=="home"?"/":"/"+(function c(q){return (q.parent?c(page(q.parent)):[]).concat(q.slug)})(p).join("/");
+const bdg=p=>p.status=="draft"?'<span class="bd wa">Draft – i visitatori non la vedono</span>':'<span class="bd ok">Published</span>';
+const bds=p=>p.status=="draft"?'<span class="bd wa">Draft</span>':'<span class="bd ok">Published</span>';
+const dirtyEl=()=>`<span class="dirty" data-dirty ${dirty[sel]?"":"hidden"}>● Modifiche non salvate</span>`;
+const pubBtn=p=>p.status=="draft"?'<button class="pri" data-act="pub">Pubblica</button>':p.id!="home"?'<button data-act="rev">Riporta in Draft</button>':"";
+const live=(p,m)=>p.status=="published"?m+". Online subito.":m+".";
+function summary(b){for(const f of T[b.type].f){const v=b.data[f.k];
+ if(["text","area","rich"].includes(f.t)){const s=strip(v);if(s)return s.slice(0,70)}
+ else if(f.t=="list"){const s=f.s.find(x=>x.t=="text");return v.length+" "+f.pl+(s&&v[0]&&v[0][s.k]?": "+v[0][s.k]:"")}}
+ return b.type=="hero"?(b.data.immagine.alt||"(vuoto)"):"(vuoto)"}
+/* ===== Validazione (campi obbligatori) ===== */
+function checkFields(fs,d,pre,out){for(const f of fs){const p=pre+f.k,v=get(d,p);
+ if(f.t=="list")v.forEach((it,i)=>checkFields(f.s,d,`${p}.${i}.`,out));
+ else if(f.r){const k=f.t=="img"?p+".alt":f.t=="link"?p+".label":p,x=f.t=="img"?v.alt:f.t=="link"?v.label:v;
+  if(!strip(x))out[k]=f.t=="img"?"Scrivi il testo alternativo dell'immagine.":"Campo obbligatorio: compilalo prima di salvare."}}return out}
+function validate(p){const bad=[],pe=pageErr[p.id]={};
+ if(!p.title.trim())pe.title="Il titolo è obbligatorio.";
+ if(p.id!="home"&&!/^[a-z0-9-]+$/.test(p.slug))pe.slug="Usa solo lettere minuscole, numeri e trattini.";
+ p.blocks.forEach(b=>{const e=errs[b.id]=checkFields(T[b.type].f,b.data,"",{});if(Object.keys(e).length)bad.push(b.id)});
+ return{bad,pb:Object.keys(pe).length>0}}
+/* ===== Azioni condivise sui dati ===== */
+let tt;function toast(m,undo){const t=$("#toast");t.innerHTML=esc(m)+(undo?' <button id="un">Annulla</button>':"");t.hidden=false;if(undo)$("#un").onclick=()=>{undo();t.hidden=true};clearTimeout(tt);tt=setTimeout(()=>t.hidden=true,7000)}
+const touch=p=>{dirty[p.id]=true};
+function refresh(){V.render();stateUI()}
+function light(){$$("[data-dirty]").forEach(e=>e.hidden=!dirty[sel]);stateUI();V.live&&V.live()}
+function savePage(p,pub){const r=validate(p);
+ if(r.bad.length||r.pb){V.invalid&&V.invalid(r.bad,r.pb);toast("Non salvato: controlla i campi segnati in rosso.");refresh();return false}
+ dirty[p.id]=false;if(pub)p.status="published";
+ toast(pub?"Pubblicata. Online subito: i visitatori la vedono.":p.status=="published"?"Salvato. Online subito: i visitatori vedono già le modifiche.":"Salvato in Draft: i visitatori non la vedono.");refresh();return true}
+function addBlock(p,t,i=p.blocks.length){const b=mk(t);p.blocks.splice(i,0,b);touch(p);return b}
+function moveTo(p,a,b){if(b<0||b>=p.blocks.length||a==b)return;p.blocks.splice(b,0,...p.blocks.splice(a,1));touch(p);refresh()}
+function dupBlock(p,i){const b=p.blocks[i],c={id:uid(),type:b.type,data:structuredClone(b.data)};p.blocks.splice(i+1,0,c);touch(p);refresh();return c}
+function delBlock(p,i){const[b]=p.blocks.splice(i,1);touch(p);refresh();toast(`Block «${T[b.type].n}» eliminato.`,()=>{p.blocks.splice(i,0,b);touch(p);refresh()})}
+function sibMove(p,d){const s=kids(p.parent),q=s[s.indexOf(p)+d];if(!q||q.id=="home"||p.id=="home")return;const a=P.indexOf(p),b=P.indexOf(q);[P[a],P[b]]=[P[b],P[a]];toast(live(p,"Ordine delle Page cambiato"));refresh()}
+function movePage(p,to){if(p.id=="home"||!to)return;to=to=="_root"?null:to;p.parent=to;P.splice(P.indexOf(p),1);P.push(p);toast(live(p,"Page spostata in «"+(to?page(to).title:"livello principale")+"»"));refresh()}
+function newPage(){const p={id:uid(),title:"Nuova Page",slug:"nuova-page",status:"draft",parent:null,seo:{title:"",description:""},blocks:[]};P.push(p);sel=p.id;toast("Nuova Page creata in Draft: i visitatori non la vedono.")}
+function parentSel(p,lab){if(p.id=="home")return"<small>La Home non si può spostare né eliminare.</small>";
+ const ex=desc(p.id),o=flat().filter(x=>x.p.id!=p.id&&x.p.id!="home"&&!ex.includes(x.p.id)).map(x=>`<option value="${x.p.id}" ${p.parent==x.p.id?"disabled":""}>${"– ".repeat(x.d)}${esc(x.p.title)}${p.parent==x.p.id?" (attuale)":""}</option>`).join("");
+ return`<select data-act="mv"><option value="">${lab}</option><option value="_root" ${p.parent==null?"disabled":""}>Livello principale${p.parent==null?" (attuale)":""}</option>${o}</select>`}
+const parentLine=p=>p.id=="home"?"":`<div class="mu" style="margin-bottom:6px">Page padre attuale: ${p.parent?esc(page(p.parent).title):"nessuna (livello principale)"}</div>`;
+const COM={save:()=>savePage(pg()),pub:()=>savePage(pg(),true),
+ rev:()=>{pg().status="draft";toast("Riportata in Draft: i visitatori non la vedono più.");refresh()},
+ prev:()=>toast("Anteprima aperta in una nuova scheda"),
+ mv:e=>movePage(pg(),e.value),newp:()=>{newPage();V.afterNew&&V.afterNew();refresh()}};
+/* ===== Form generico dei Field (piccolo helper condiviso) ===== */
+const E=(p,er)=>er[p]?`<div class="err" data-e="${p}">${er[p]}</div>`:"";
+const IN=(p,v,er,ph="")=>`<input data-p="${p}" value="${esc(v)}" placeholder="${ph}" class="${er[p]?"bad":""}">${E(p,er)}`;
+function fld(f,d,pre,er){const p=pre+f.k,v=get(d,p);let c="";
+ if(f.t=="text")c=IN(p,v,er);
+ else if(f.t=="area")c=`<textarea rows="3" data-p="${p}" class="${er[p]?"bad":""}">${esc(v)}</textarea>${E(p,er)}`;
+ else if(f.t=="rich")c=`<div class="tb">${[["B","bold"],["I","italic"],["H2","h2"],["H3","h3"],["Link","link"],["Elenco","ul"]].map(([l,k])=>`<button type="button" data-fa="fmt" data-c="${k}">${l}</button>`).join("")}</div><div class="rich ${er[p]?"bad":""}" contenteditable="true" data-p="${p}">${v}</div>${E(p,er)}`;
+ else if(f.t=="img")c=`<div class="img">${esc(v.alt)||"Nessuna immagine scelta"}</div><button type="button" data-fa="pick">Scegli immagine</button>${IN(p+".alt",v.alt,er,"Testo alternativo: descrivi l'immagine"+(f.r?" *":""))}`;
+ else if(f.t=="link")c=`<div class="two">${IN(p+".label",v.label,er,"Testo del link"+(f.r?" *":""))}${IN(p+".url",v.url,er,"Indirizzo (es. /contatti)")}</div>`;
+ else if(f.t=="choice")c=`<select data-p="${p}">${f.o.map(o=>`<option ${o==v?"selected":""}>${o}</option>`).join("")}</select>`;
+ else if(f.t=="fixed")c=`<input disabled value="${esc(f.v)}">`;
+ else if(f.t=="list")c=v.map((it,i)=>`<div class="li"><div class="lih"><b>${f.it} ${i+1}</b><span><button type="button" data-fa="lm" data-p="${p}" data-i="${i}" data-d="-1">↑</button> <button type="button" data-fa="lm" data-p="${p}" data-i="${i}" data-d="1">↓</button> <button type="button" data-fa="ld" data-p="${p}" data-i="${i}">Elimina</button></span></div>${f.s.map(s=>fld(s,d,`${p}.${i}.`,er)).join("")}</div>`).join("")+`<button type="button" data-fa="la" data-p="${p}">+ Aggiungi ${f.it.toLowerCase()}</button>`;
+ return`<div class="f"><label>${f.l}${f.r?'<span class="req"> *</span>':""}</label>${c}</div>`}
+function mountForm(el,fs,d,er,onCh){
+ el.innerHTML=fs.map(f=>fld(f,d,"",er)).join("");
+ el.onmousedown=e=>{if(e.target.closest("[data-fa=fmt]"))e.preventDefault()};
+ el.oninput=e=>{const t=e.target,p=t.dataset.p;if(!p)return;set(d,p,t.isContentEditable?t.innerHTML:t.value);delete er[p];t.classList.remove("bad");const m=el.querySelector(`[data-e="${p}"]`);if(m)m.remove();onCh()};
+ el.onclick=e=>{const b=e.target.closest("[data-fa]");if(!b)return;const a=b.dataset.fa,p=b.dataset.p,i=+b.dataset.i;
+  if(a=="fmt"){const c=b.dataset.c,h=c=="h2"||c=="h3";document.execCommand(c=="link"?"createLink":c=="ul"?"insertUnorderedList":h?"formatBlock":c,false,c=="link"?"https://esempio.it":h?c.toUpperCase():null);const r=document.activeElement;if(r&&r.isContentEditable)r.dispatchEvent(new Event("input",{bubbles:true}));return}
+  if(a=="pick"){toast("Qui si apre la libreria delle immagini (finto).");return}
+  const L=get(d,p);if(a=="la")L.push(defs(fs.find(f=>f.k==p).s));if(a=="ld")L.splice(i,1);
+  if(a=="lm"){const j=i+ +b.dataset.d;if(j>=0&&j<L.length)[L[i],L[j]]=[L[j],L[i]]}
+  Object.keys(er).filter(k=>k.startsWith(p+".")).forEach(k=>delete er[k]);mountForm(el,fs,d,er,onCh);onCh()}}
+function stateUI(){const p=pg();$("#st").innerHTML=`<div><b>${esc(p.title)}</b> · ${p.status}${dirty[p.id]?" · modifiche non salvate":""}</div><div>URL: ${esc(path(p))}</div><div>Padre: ${p.parent?esc(page(p.parent).title):"(livello principale)"}</div>`+(p.blocks.map((b,i)=>`<div>${i+1}. ${T[b.type].n} – ${esc(summary(b))}</div>`).join("")||"<div>(nessun Block)</div>")+`<hr><div>Albero: ${flat().map(x=>"·".repeat(x.d)+esc(x.p.title)+" ("+x.p.status[0].toUpperCase()+")").join(" | ")}</div>`}
+
+/* ===== Variante A: Albero + lista ===== */
+function VariantA(){
+ let open={},adding=false,drag=null;
+ const onCh=()=>{touch(pg());light()};
+ const acts={
+  sel:e=>{sel=e.dataset.id;adding=false;refresh()},tog:e=>{open[e.dataset.id]=!open[e.dataset.id];refresh()},
+  up:e=>moveTo(pg(),+e.dataset.i,+e.dataset.i-1),dn:e=>moveTo(pg(),+e.dataset.i,+e.dataset.i+1),del:e=>delBlock(pg(),+e.dataset.i),
+  add:()=>{adding=!adding;refresh()},
+  addt:e=>{const b=addBlock(pg(),e.dataset.t);open[b.id]=true;adding=false;refresh();const n=$(`.blk[data-id="${b.id}"]`);if(n)n.scrollIntoView({behavior:"smooth",block:"center"})},
+  pup:e=>sibMove(page(e.dataset.id),-1),pdn:e=>sibMove(page(e.dataset.id),1)};
+ return{acts,
+  ds:e=>{const g=e.target.closest("[data-drag]");if(!g)return;drag=+g.dataset.drag;e.dataTransfer.setData("text/plain",String(drag));e.dataTransfer.setDragImage(g.closest(".blk"),10,10)},
+  dov:e=>{if(e.target.closest("[data-drop]"))e.preventDefault()},
+  dd:e=>{const t=e.target.closest("[data-drop]");if(!t||drag==null)return;e.preventDefault();const f=drag;drag=null;moveTo(pg(),f,+t.dataset.drop)},
+  invalid:(bad,pb)=>{bad.forEach(id=>open[id]=true);if(pb)open.props=true},
+  afterNew:()=>{open.props=true},
+  live:()=>{const p=pg();$$(".sum").forEach(s=>{const b=p.blocks.find(x=>x.id==s.dataset.sum);if(b)s.textContent=summary(b)});$("#ttl").textContent=p.title},
+  render(){const p=pg(),pe=pageErr[p.id]||(pageErr[p.id]={});
+   const row=({p:q,d})=>{const on=q.id==sel,m=`margin-left:${10+d*16}px`;return`<div class="tr ${on?"on":""}" style="padding-left:${10+d*16}px" data-act="sel" data-id="${q.id}"><span>${esc(q.title)}</span>${bds(q)}</div>`+(on?`<div class="mvs" style="${m}">${q.id=="home"?"<small>La Home non si può spostare né eliminare.</small>":`<button class="ic" data-act="pup" data-id="${q.id}" title="Sposta su">↑</button><button class="ic" data-act="pdn" data-id="${q.id}" title="Sposta giù">↓</button>${parentSel(q,"Sposta in…")}`}</div>`:"")};
+   const item=(id,ic,n,sum,bad,ctl,i)=>`<div class="blk ${bad?"bad":""}" data-id="${id}" ${i!=null?`data-drop="${i}"`:""}><div class="bh">${i!=null?`<span class="grip" draggable="true" data-drag="${i}" title="Trascina per spostare">⠿</span>`:""}<button class="bt" data-act="tog" data-id="${id}"><span class="ti">${ic}</span><b>${n}</b><span class="sum" data-sum="${id}">${esc(sum)}</span><span>${open[id]?"▴":"▾"}</span></button>${ctl}</div>${open[id]?`<div class="bf" data-id="${id}"></div>`:""}</div>`;
+   const n=p.blocks.length;
+   app.innerHTML=`<div class="vA"><aside><h2>Page del Site</h2>${flat().map(row).join("")}<button class="wide" style="margin-top:12px" data-act="newp">+ Nuova Page</button></aside><main>
+   <div class="top"><div><h1 id="ttl">${esc(p.title)}</h1><div class="sub">${esc(path(p))} ${bdg(p)} ${dirtyEl()}</div></div><div class="acts"><button data-act="prev">Anteprima</button><button data-act="save">Salva</button>${pubBtn(p)}</div></div>
+   ${item("props","⚙","Proprietà della Page",p.title+" · "+path(p),Object.keys(pe).length,"")}
+   ${p.blocks.map((b,i)=>item(b.id,T[b.type].i,T[b.type].n,summary(b),Object.keys(errs[b.id]||{}).length,`<button class="ic" data-act="up" data-i="${i}" ${i?"":"disabled"} title="Su">↑</button><button class="ic" data-act="dn" data-i="${i}" ${i<n-1?"":"disabled"} title="Giù">↓</button><button data-act="del" data-i="${i}">Elimina</button>`,i)).join("")}
+   ${n?"":'<p class="mu">Questa Page non ha ancora Block.</p>'}
+   <button class="pri" data-act="add">+ Aggiungi Block</button>
+   ${adding?`<div class="picker">${Object.entries(T).map(([k,t])=>`<button data-act="addt" data-t="${k}"><span class="ti">${t.i}</span><b>${t.n}</b><small>${t.d}</small></button>`).join("")}</div>`:""}
+   </main></div>`;
+   $$(".bf").forEach(el=>{const id=el.dataset.id;if(id=="props")mountForm(el,pf(p),p,pe,onCh);else{const b=p.blocks.find(x=>x.id==id);mountForm(el,T[b.type].f,b.data,errs[b.id]||(errs[b.id]={}),onCh)}})}}}
+
+/* ===== Variante B: Editor visivo ===== */
+function VariantB(){
+ let panel=null,ins=null;
+ const onCh=()=>{touch(pg());light()};
+ const viz=b=>{const d=b.data,i=a=>`<div class="img">${esc(a.alt)||"Immagine"}</div>`,t=(s,x)=>s?esc(s):`<i class="mu">${x}</i>`;
+  switch(b.type){
+  case"hero":return`<div class="v-hero"><div class="img">${esc(d.immagine.alt)}</div><div class="hx"><h1>${t(d.titolo,"Titolo mancante")}</h1><p>${esc(d.sottotitolo)}</p>${d.cta.label?`<span class="cta">${esc(d.cta.label)}</span>`:""}</div></div>`;
+  case"testo":return`<div class="v-text">${d.testo||'<i class="mu">Testo mancante</i>'}</div>`;
+  case"testoimg":return`<div class="v-ti ${d.pos=="destra"?"rev":""}">${i(d.immagine)}<div><h2>${t(d.titolo,"Titolo mancante")}</h2>${d.testo}</div></div>`;
+  case"galleria":return`<div class="v-gal">${d.immagini.map(x=>i(x.img)).join("")||'<i class="mu">Nessuna immagine</i>'}</div>`;
+  case"card":return`<div class="v-cards">${d.card.map(c=>`<div class="vc">${i(c.img)}<h3>${t(c.titolo,"Titolo")}</h3><p>${esc(c.testo)}</p>${c.link.label?`<a>${esc(c.link.label)} →</a>`:""}</div>`).join("")||'<i class="mu">Nessuna card</i>'}</div>`;
+  case"cta":return`<div class="v-cta"><h2>${t(d.titolo,"Titolo mancante")}</h2><p>${esc(d.testo)}</p><span class="cta">${esc(d.link.label)||"Pulsante"}</span></div>`;
+  case"faq":return`<div class="v-faq">${d.voci.map(q=>`<details><summary>${t(q.d,"Domanda")}</summary><p>${esc(q.r)}</p></details>`).join("")||'<i class="mu">Nessuna domanda</i>'}</div>`;
+  default:return`<div class="v-form"><h2>${t(d.titolo,"Titolo mancante")}</h2><p>${esc(d.intro)}</p><div class="two"><input disabled placeholder="Nome"><input disabled placeholder="Email"></div><textarea disabled placeholder="Messaggio"></textarea><span class="cta">Invia</span></div>`}};
+ const insBtn=i=>`<div class="ins ${ins===i?"open":""}"><button data-act="insopen" data-i="${i}" title="Inserisci un Block qui">+</button>${ins===i?`<div class="pop">${Object.entries(T).map(([k,t])=>`<button data-act="inst" data-t="${k}" data-i="${i}">${t.i} ${t.n}</button>`).join("")}</div>`:""}</div>`;
+ const canvas=()=>{const p=pg();return`<div class="site"><div class="sh"><b>Studio Bianchi</b><span>${kids(null).map(k=>esc(k.title)).join(" · ")}</span></div>${p.blocks.map((b,i)=>insBtn(i)+`<div class="vb ${panel&&panel.id==b.id?"on":""} ${Object.keys(errs[b.id]||{}).length?"bad":""}" data-act="selb" data-id="${b.id}"><div class="tbar"><span>${T[b.type].n}</span><button data-act="up" data-i="${i}" title="Su">↑</button><button data-act="dn" data-i="${i}" title="Giù">↓</button><button data-act="dup" data-i="${i}">Duplica</button><button data-act="del" data-i="${i}">Elimina</button></div>${viz(b)}</div>`).join("")}${insBtn(p.blocks.length)}${p.blocks.length?"":'<p class="mu" style="text-align:center">Questa Page non ha ancora Block. Usa il + per aggiungerne uno.</p>'}</div>`};
+ const panelHTML=()=>{const p=pg();
+  if(panel&&panel.k=="b"&&!p.blocks.some(b=>b.id==panel.id))panel=null;
+  if(!panel)return'<p class="mu">Clicca un Block per modificarlo, oppure apri le Proprietà della Page.</p>';
+  const head=t=>`<div class="ph"><b>${t}</b><button class="ic" data-act="close" title="Chiudi">✕</button></div><div id="pf"></div>`;
+  if(panel.k=="p")return head("Proprietà della Page")+`<div class="f"><label>Page padre</label>${parentLine(p)}${parentSel(p,"Cambia Page padre…")}</div>`;
+  const b=p.blocks.find(x=>x.id==panel.id);return head(T[b.type].i+" "+T[b.type].n)+'<div class="pfoot"><button class="pri" data-act="save">Salva</button><button data-act="close">Chiudi</button></div>'};
+ const mountPanel=()=>{const el=$("#pf");if(!el)return;const p=pg();
+  if(panel.k=="p")mountForm(el,pf(p),p,pageErr[p.id]||(pageErr[p.id]={}),onCh);
+  else{const b=p.blocks.find(x=>x.id==panel.id);mountForm(el,T[b.type].f,b.data,errs[b.id]||(errs[b.id]={}),onCh)}};
+ const acts={
+  goto:e=>{if(e.value=="_new")return COM.newp();sel=e.value;panel=null;ins=null;refresh()},
+  selb:e=>{panel={k:"b",id:e.dataset.id};refresh()},props:()=>{panel={k:"p"};refresh()},close:()=>{panel=null;refresh()},
+  up:e=>moveTo(pg(),+e.dataset.i,+e.dataset.i-1),dn:e=>moveTo(pg(),+e.dataset.i,+e.dataset.i+1),
+  dup:e=>{const c=dupBlock(pg(),+e.dataset.i);panel={k:"b",id:c.id};refresh()},del:e=>delBlock(pg(),+e.dataset.i),
+  insopen:e=>{ins=ins===+e.dataset.i?null:+e.dataset.i;refresh()},
+  inst:e=>{const b=addBlock(pg(),e.dataset.t,+e.dataset.i);ins=null;panel={k:"b",id:b.id};refresh()}};
+ return{acts,
+  invalid:(bad,pb)=>{panel=bad.length?{k:"b",id:bad[0]}:pb?{k:"p"}:panel},
+  afterNew:()=>{panel={k:"p"};ins=null},
+  live:()=>{const c=$("#cv");if(c)c.innerHTML=canvas()},
+  render(){const p=pg();
+   app.innerHTML=`<div class="vB"><div class="btop"><select data-act="goto">${flat().map(x=>`<option value="${x.p.id}" ${x.p.id==sel?"selected":""}>${"– ".repeat(x.d)}${esc(x.p.title)}</option>`).join("")}<option value="_new">+ Nuova Page</option></select>${bdg(p)}${dirtyEl()}<span class="sp"></span><button data-act="props">Proprietà della Page</button><button data-act="prev">Anteprima</button><button data-act="save">Salva</button>${pubBtn(p)}</div><div class="bbody"><div class="cv" id="cv">${canvas()}</div><aside class="pn" id="pn">${panelHTML()}</aside></div></div>`;
+   mountPanel()}}}
+
+/* ===== Variante C: Passo dopo passo (mobile first) ===== */
+function VariantC(){
+ let st=["list"],ed=null;
+ const go=s=>{st.push(s);refresh();scrollTo(0,0)},back=()=>{st.pop();ed=null;refresh();scrollTo(0,0)};
+ const bar=p=>`<div class="bar"><button data-act="prev">Anteprima</button><button data-act="save">Salva</button>${pubBtn(p)}</div>`;
+ const hd=(b,t)=>`<header><button data-act="back">‹ ${b}</button><h1>${t}</h1></header>`;
+ const acts={back,open:e=>{sel=e.dataset.id;go("page")},setp:()=>go("set"),pick:()=>go("pick"),
+  eb:e=>{const b=pg().blocks.find(x=>x.id==e.dataset.id);ed={id:b.id,type:b.type,wc:structuredClone(b.data),er:{}};go("block")},
+  pickt:e=>{ed={id:null,type:e.dataset.t,wc:defs(T[e.dataset.t].f),er:{}};st.pop();go("block")},
+  up:e=>moveTo(pg(),+e.dataset.i,+e.dataset.i-1),dn:e=>moveTo(pg(),+e.dataset.i,+e.dataset.i+1),
+  bdel:()=>{const p=pg(),i=p.blocks.findIndex(b=>b.id==ed.id);st.pop();ed=null;delBlock(p,i)},
+  bsave:()=>{const e=checkFields(T[ed.type].f,ed.wc,"",{}),p=pg();
+   if(Object.keys(e).length){ed.er=e;refresh();toast("Non salvato: compila i campi segnati in rosso.");return}
+   if(ed.id)p.blocks.find(b=>b.id==ed.id).data=ed.wc;else p.blocks.push({id:uid(),type:ed.type,data:ed.wc});
+   touch(p);st.pop();ed=null;savePage(p)}};
+ return{acts,afterNew:()=>st.push("page"),
+  render(){const p=pg(),s=st[st.length-1],n=p.blocks.length;let h="";
+   if(s=="list")h=`<header><h1>Le Page del tuo Site</h1></header>${flat().map(({p:q,d})=>`<div class="crow" style="padding-left:${16+d*22}px" data-act="open" data-id="${q.id}"><div><b>${esc(q.title)}</b><small>${esc(path(q))}</small></div>${bds(q)}<span>›</span></div>`).join("")}<div class="cb"><button class="pri wide" data-act="newp">+ Nuova Page</button></div>`;
+   else if(s=="page")h=`${hd("Le Page",esc(p.title))}<div class="cb"><div>${bdg(p)} ${dirtyEl()}</div><p class="mu" style="margin:8px 0 14px">${esc(path(p))}</p>
+    <button class="tap" data-act="setp"><span><b>Impostazioni della Page</b><br><small>Titolo, indirizzo, Page padre, SEO${Object.keys(pageErr[p.id]||{}).length?' · <span class="req">da completare</span>':""}</small></span><span>›</span></button>
+    <h3 style="margin:18px 0 8px">Block (${n})</h3>${p.blocks.map((b,i)=>`<div class="brow"><div class="bmain" data-act="eb" data-id="${b.id}"><span class="ti">${T[b.type].i}</span><div><b>${T[b.type].n}</b><small>${esc(summary(b))}</small>${Object.keys(errs[b.id]||{}).length?"<em>Da completare</em>":""}</div></div><button class="ic" data-act="up" data-i="${i}" ${i?"":"disabled"}>↑</button><button class="ic" data-act="dn" data-i="${i}" ${i<n-1?"":"disabled"}>↓</button></div>`).join("")||'<p class="mu">Nessun Block.</p>'}
+    <button class="wide" data-act="pick">+ Aggiungi Block</button></div>${bar(p)}`;
+   else if(s=="pick")h=`${hd("Indietro","Aggiungi un Block")}<div class="cb">${Object.entries(T).map(([k,t])=>`<button class="tpick" data-act="pickt" data-t="${k}"><span class="ti">${t.i}</span><b>${t.n}</b><small>${t.d}</small></button>`).join("")}</div>`;
+   else if(s=="set")h=`${hd("Page","Impostazioni")}<div class="cb"><div id="pf"></div><div class="f"><label>Page padre</label>${parentLine(p)}${parentSel(p,"Cambia Page padre…")}</div></div>${bar(p)}`;
+   else h=`${hd("Annulla",ed.id?T[ed.type].n:"Nuovo Block: "+T[ed.type].n)}<div class="cb"><div id="pf"></div>${ed.id?'<button data-act="bdel" style="color:var(--er)">Elimina Block</button>':""}</div><div class="bar"><button data-act="back">Annulla</button><button class="pri" data-act="bsave">Salva</button></div>`;
+   app.innerHTML=`<div class="vC">${h}</div>`;
+   const el=$("#pf");if(!el)return;
+   if(s=="set")mountForm(el,pf(p),p,pageErr[p.id]||(pageErr[p.id]={}),()=>{touch(p);light()});
+   else mountForm(el,T[ed.type].f,ed.wc,ed.er,()=>{})}}}
+
+/* ===== Switcher e avvio ===== */
+const NAMES={A:"Albero + lista",B:"Editor visivo",C:"Passo dopo passo"},KEYS=Object.keys(NAMES),inst={},app=$("#app");
+let cur=new URLSearchParams(location.search).get("variant");if(!NAMES[cur])cur="A";
+function mount(v){cur=v;try{const u=new URL(location.href);u.searchParams.set("variant",v);history.replaceState(null,"",u)}catch(e){}
+ V=inst[v]||(inst[v]={A:VariantA,B:VariantB,C:VariantC}[v]());app.ondragstart=V.ds;app.ondragover=V.dov;app.ondrop=V.dd;
+ $("#sl").textContent=v+" ("+NAMES[v]+")";refresh()}
+const step=d=>mount(KEYS[(KEYS.indexOf(cur)+d+KEYS.length)%KEYS.length]);
+$("#pv").onclick=()=>step(-1);$("#nx").onclick=()=>step(1);
+addEventListener("keydown",e=>{if(e.key!="ArrowLeft"&&e.key!="ArrowRight"||e.altKey||e.ctrlKey||e.metaKey)return;const t=e.target;
+ if(t.closest&&t.closest("input,textarea,select,[contenteditable]"))return;step(e.key=="ArrowRight"?1:-1)});
+document.addEventListener("click",e=>{const el=e.target.closest("[data-act]");if(!el||el.tagName=="SELECT")return;const f=COM[el.dataset.act]||V.acts[el.dataset.act];if(f)f(el,e)});
+document.addEventListener("change",e=>{const el=e.target;if(el.tagName!="SELECT"||!el.dataset.act)return;const f=COM[el.dataset.act]||V.acts[el.dataset.act];if(f)f(el,e)});
+mount(cur);
+</script></body></html>
