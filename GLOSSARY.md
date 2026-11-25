@@ -12,6 +12,10 @@ _Avoid_: Project, web project, website
 The business that owns a **Site** and edits its content. The Client has no technical skills.
 _Avoid_: Customer, user, editor
 
+**Installation**:
+The running CMS of one **Site**, with its own data. Each Site has exactly one Installation.
+_Avoid_: Instance, deployment, tenant
+
 **Page**:
 A page of a **Site**. A Page is a list of **Blocks**. A Page can have child Pages, so the Pages of a Site make a tree.
 _Avoid_: Screen, view
@@ -41,7 +45,7 @@ A section of a **Page** with a fixed set of **Fields**, for example a hero or a 
 _Avoid_: Component, widget, module, section
 
 **Block type**:
-The definition of a kind of **Block**: its name and its **Fields**. The base set of Block types is in the CMS. A developer adds a Block type for one **Site** in a file of that Site.
+The definition of a kind of **Block**: its name and its **Fields**. The base set of Block types is in the CMS. A developer adds a Block type for one **Site** in a file of its **Installation**.
 _Avoid_: Block definition, template, schema
 
 **Field**:
