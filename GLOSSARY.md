@@ -32,6 +32,10 @@ _Avoid_: Hidden, unpublished, offline
 The state of a **Page** that visitors can see. Each save of a Published Page goes live at once.
 _Avoid_: Live, visible, online
 
+**Preview**:
+The view of a **Page** on the **Site** frontend that only the **Client** sees, with the edits not saved yet. A Preview never changes what visitors see.
+_Avoid_: Draft view, staging
+
 **Menu**:
 A list of links of a **Site** that the **Client** orders. Each link goes to a **Page** or to an external URL. Each Site has two Menus: main and footer.
 _Avoid_: Navigation, nav, navbar
