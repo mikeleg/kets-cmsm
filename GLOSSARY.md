@@ -65,5 +65,5 @@ A language in which a **Site** shows its content. Each Site has a list of Langua
 _Avoid_: Locale, culture, translation
 
 **Contact request**:
-A message that a visitor sends with the contact form of a **Site**. The **Client** reads it in the admin and gets it by email.
+A message that a visitor sends with the contact form of a **Site**. The **Client** reads it in the admin.
 _Avoid_: Submission, lead, enquiry, message
