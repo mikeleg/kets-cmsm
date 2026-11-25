@@ -13,9 +13,37 @@ The business that owns a **Site** and edits its content. The Client has no techn
 _Avoid_: Customer, user, editor
 
 **Page**:
-A page of a **Site**. A Page is a list of **Blocks**.
+A page of a **Site**. A Page is a list of **Blocks**. A Page can have child Pages, so the Pages of a Site make a tree.
 _Avoid_: Screen, view
 
+**Home**:
+The one **Page** of a **Site** at the root URL. The **Client** cannot delete or move it.
+_Avoid_: Homepage, index, landing
+
+**Draft**:
+The state of a **Page** that visitors cannot see. Each new Page starts as a Draft, and the **Client** can put a **Published** Page back to Draft. Edits to a Published Page have no Draft.
+_Avoid_: Hidden, unpublished, offline
+
+**Published**:
+The state of a **Page** that visitors can see. Each save of a Published Page goes live at once.
+_Avoid_: Live, visible, online
+
+**Menu**:
+A list of links of a **Site** that the **Client** orders. Each link goes to a **Page** or to an external URL. Each Site has two Menus: main and footer.
+_Avoid_: Navigation, nav, navbar
+
+**Site settings**:
+The content of a **Site** that is not in a **Page**, for example name, logo, contacts, social links and default SEO values.
+_Avoid_: Global content, configuration, options
+
 **Block**:
-A section of a **Page** with a fixed set of fields, for example a hero or a gallery. A developer defines each Block type in code. The **Client** only adds Blocks to a Page and fills their fields.
+A section of a **Page** with a fixed set of **Fields**, for example a hero or a gallery. Each Block has a **Block type**. The **Client** only adds Blocks to a Page and fills their Fields.
 _Avoid_: Component, widget, module, section
+
+**Block type**:
+The definition of a kind of **Block**: its name and its **Fields**. The base set of Block types is in the CMS. A developer adds a Block type for one **Site** in a file of that Site.
+_Avoid_: Block definition, template, schema
+
+**Field**:
+One value that the **Client** fills in a **Block**, for example a text, an image or a link. Each Field has a kind from a fixed list and can be required.
+_Avoid_: Property, attribute, input
