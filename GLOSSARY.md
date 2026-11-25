@@ -67,3 +67,7 @@ _Avoid_: Locale, culture, translation
 **Contact request**:
 A message that a visitor sends with the contact form of a **Site**. The **Client** reads it in the admin.
 _Avoid_: Submission, lead, enquiry, message
+
+**Media library**:
+The images of one **Installation**. The **Client** uploads them there and uses them in **Blocks**.
+_Avoid_: Media, assets, gallery, uploads
