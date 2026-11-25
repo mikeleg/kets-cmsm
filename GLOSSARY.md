@@ -55,3 +55,7 @@ _Avoid_: Block definition, template, schema
 **Field**:
 One value that the **Client** fills in a **Block**, for example a text, an image or a link. Each Field has a kind from a fixed list and can be required.
 _Avoid_: Property, attribute, input
+
+**Language**:
+A language in which a **Site** shows its content. Each Site has a list of Languages and one default Language. In the MVP the only Language is Italian.
+_Avoid_: Locale, culture, translation
