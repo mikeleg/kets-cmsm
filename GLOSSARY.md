@@ -63,3 +63,7 @@ _Avoid_: Property, attribute, input
 **Language**:
 A language in which a **Site** shows its content. Each Site has a list of Languages and one default Language. In the MVP the only Language is Italian.
 _Avoid_: Locale, culture, translation
+
+**Contact request**:
+A message that a visitor sends with the contact form of a **Site**. The **Client** reads it in the admin and gets it by email.
+_Avoid_: Submission, lead, enquiry, message
