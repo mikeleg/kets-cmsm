@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Anteprima con token - prototipo</title>
+<style>
+:root{--ac:#0f6b5c;--acbg:#e3f2ef;--tx:#1d2428;--mu:#667078;--bd:#d9dee2;--bg:#f6f7f8;--err:#a32d2d}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 system-ui,Segoe UI,Roboto,sans-serif}
+main{max-width:1180px;margin:0 auto;padding:32px 24px 64px}
+h1{font-size:24px;margin:0 0 4px}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mu);margin:40px 0 12px}
+h3{font-size:14px;margin:0 0 10px}
+.question{background:#fff;border:1px solid var(--bd);border-left:4px solid var(--ac);padding:16px 20px;margin:16px 0}
+.question q{font-size:17px;display:block;quotes:none}
+details{color:var(--mu);margin-top:10px;font-size:13px}
+details li{margin:3px 0}
+.bar{display:flex;gap:16px;align-items:baseline;background:var(--acbg);padding:10px 16px;margin:24px 0 12px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+.panel{background:#fff;border:1px solid var(--bd);padding:16px;min-width:0}
+.row{padding:3px 6px;margin:0 -6px;border-left:3px solid transparent;overflow-wrap:anywhere}
+.row.new{background:var(--acbg);border-left-color:var(--ac)}
+.k{color:var(--mu);font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+.muted{color:var(--mu)}
+.badge{font-size:12px;padding:1px 7px;border:1px solid var(--bd);border-radius:10px;background:var(--bg)}
+.pub{color:var(--ac);border-color:var(--ac)}
+.err{color:var(--err)}
+.tbd{font-size:12px;font-weight:600;background:#fff3cd;color:#7a5a00;padding:1px 6px;border-radius:3px}
+.chg{float:right;font-size:12px;color:var(--ac);font-weight:600}
+code{font-size:13px;background:var(--bg);padding:0 4px}
+.browser{border:1px solid var(--bd);padding:10px 12px;background:var(--bg)}
+.legend{font-size:12px;color:var(--mu);margin-top:10px}
+button{font:inherit;font-size:14px;padding:6px 12px;border:1px solid var(--ac);background:#fff;color:var(--ac);cursor:pointer}
+button:hover:not(:disabled){background:var(--acbg)}
+button:disabled{border-color:var(--bd);color:#a0a8ad;cursor:default}
+button.go{background:var(--ac);color:#fff}
+button.go:hover:not(:disabled){background:#0b5448}
+select{font:inherit;font-size:14px;padding:5px}
+.group{background:#fff;border:1px solid var(--bd);padding:14px 16px;margin-bottom:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.group .k{width:100%}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.tabs button.on{background:var(--ac);color:#fff}
+.walk{background:#fff;border:1px solid var(--bd);padding:16px 20px}
+.walk ol{padding:0;margin:14px 0 0;list-style:none;display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.watch{color:var(--mu);margin:6px 0}
+</style>
+</head>
+<body>
+<main>
+<h1>Anteprima di una Page con token</h1>
+<div class="question">
+  <q>Come vede il Client una Page sul frontend del Site prima che la vedano i visitatori? Due casi: una Page in Draft, e una modifica non salvata a una Page Published. Meccanismo proposto: token di anteprima.</q>
+  <details><summary>Regole che il prototipo applica (le ultime sono inventate: da validare)</summary>
+    <ul>
+      <li>Il frontend legge l'API a ogni richiesta. Una Page in Draft è 404 per il Visitatore, assente dalla sitemap, e le sue figlie sono nascoste. Le voci di Menu verso Page nascoste spariscono.</li>
+      <li>Con un token valido il frontend mostra lo snapshot della Page in anteprima. Ogni altra Page e il Menu usano i dati salvati. Il token non cambia mai ciò che vede il Visitatore.</li>
+      <li>Inventato: Apri e Aggiorna anteprima rinnovano la scadenza di 30 minuti. Salva aggiorna lo snapshot ma non la scadenza.</li>
+      <li>Inventato: Pubblica salva la copia di lavoro e poi mette la Page in Published. Riporta in Draft cambia solo lo stato.</li>
+      <li>Inventato: aprire una Page nell'admin inizia una nuova sessione e cancella il token della sessione precedente. Un token vale solo per la sua Page.</li>
+    </ul>
+  </details>
+</div>
+
+<div class="bar" id="bar"></div>
+<div class="grid" id="panels"></div>
+
+<h2>Gioco libero</h2>
+<div id="free"></div>
+
+<h2>Percorsi guidati</h2>
+<div class="tabs" id="tabs"></div>
+<div class="walk" id="walk"></div>
+</main>
+
+<script id="logic">
+// Modulo puro: nessun accesso al DOM. Reducer (state, action) => state + funzioni di lettura.
+const Anteprima = (() => {
+  const TTL = 30, START = 9 * 60;
+  const P = (id, title, slug, status, blocks, parentId) => ({ id, title, slug, status, blocks, parentId });
+  const initial = () => ({
+    clock: 0, editSeq: 0, tokenSeq: 0,
+    pages: [
+      P(1, "Home", "/", "Published", ["Hero"], null),
+      P(2, "Servizi", "/servizi", "Published", ["Hero", "Elenco servizi"], null),
+      P(3, "Consulenza", "/servizi/consulenza", "Published", ["Testo"], 2),
+      P(4, "Nuovo servizio", "/servizi/nuovo-servizio", "Draft", ["Hero"], 2),
+    ],
+    menu: [1, 2, 4],
+    admin: { pageId: null, working: null, dirty: false, token: null },
+    previews: {},
+    clientTab: null, clientView: null, visitorView: null,
+    note: "Stato iniziale.",
+  });
+
+  const byId = (s, id) => s.pages.find(p => p.id === id);
+  const bySlug = (s, slug) => s.pages.find(p => p.slug === slug);
+  const isVisible = (s, p) => p.status === "Published" && (p.parentId == null || isVisible(s, byId(s, p.parentId)));
+  const isExpired = (s, e) => s.clock >= e.expiresAt;
+  const clockText = m => { const t = START + m; return String(Math.floor(t / 60) % 24).padStart(2, "0") + ":" + String(t % 60).padStart(2, "0"); };
+  const publicMenu = s => s.menu.map(id => byId(s, id)).filter(p => isVisible(s, p)).map(p => ({ label: p.title, slug: p.slug }));
+
+  function renderForVisitor(s, slug) {
+    const p = bySlug(s, slug), menu = publicMenu(s);
+    if (!p || !isVisible(s, p)) return { kind: "404", menu };
+    return { kind: "page", title: p.title, blocks: p.blocks, menu, sitemap: s.pages.filter(q => isVisible(s, q)).map(q => q.slug) };
+  }
+
+  function renderForPreview(s, slug, token) {
+    const e = s.previews[token];
+    if (!e || isExpired(s, e)) return { kind: "expired", message: "Anteprima scaduta: torna all'admin e riapri l'anteprima" };
+    const p = byId(s, e.pageId);
+    if (p.slug !== slug) return { ...renderForVisitor(s, slug), preview: true };
+    const menu = [], openQuestions = [];
+    for (const id of s.menu) {
+      const q = byId(s, id);
+      if (q.id === p.id) {
+        const forced = !isVisible(s, q);
+        menu.push({ label: e.snapshot.title, slug: q.slug, forced });
+        if (forced) openQuestions.push("menu");
+      } else if (isVisible(s, q)) menu.push({ label: q.title, slug: q.slug });
+    }
+    if (p.parentId != null && !isVisible(s, byId(s, p.parentId))) openQuestions.push("figlia");
+    return { kind: "page", preview: true, title: e.snapshot.title, blocks: e.snapshot.blocks, menu, openQuestions,
+      status: p.status, visitorKind: renderForVisitor(s, slug).kind };
+  }
+
+  function writePreview(s) {
+    const a = s.admin;
+    let e = a.token && s.previews[a.token];
+    if (!e || isExpired(s, e)) {
+      if (e) delete s.previews[a.token];
+      s.tokenSeq++;
+      a.token = "pv" + ((s.tokenSeq * 2654435761) >>> 0).toString(36);
+      e = s.previews[a.token] = { pageId: a.pageId, createdAt: s.clock };
+    }
+    e.snapshot = structuredClone(a.working);
+    e.expiresAt = s.clock + TTL;
+    return a.token;
+  }
+
+  function reduce(state, act) {
+    const s = structuredClone(state), a = s.admin;
+    const page = () => byId(s, a.pageId);
+    if (act.type !== "open_page" && !["advance", "visitor_open", "client_reload"].includes(act.type) && a.pageId == null) {
+      s.note = "Prima apri una Page nell'admin."; return s;
+    }
+    switch (act.type) {
+      case "open_page": {
+        const had = a.token; if (had) delete s.previews[had];
+        const p = byId(s, act.id);
+        Object.assign(a, { pageId: p.id, working: { title: p.title, blocks: [...p.blocks] }, dirty: false, token: null });
+        s.note = `Aperta «${p.title}» nell'admin: nuova sessione, copia di lavoro uguale al salvato.` + (had ? " Token precedente eliminato." : "");
+        break; }
+      case "edit_title":
+        a.working.title = a.working.title.replace(/ \(mod\. \d+\)$/, "") + ` (mod. ${++s.editSeq})`;
+        a.dirty = true; s.note = "Titolo cambiato nella copia di lavoro. Il salvato nel CMS non cambia."; break;
+      case "add_block":
+        a.working.blocks.push("Block " + (a.working.blocks.length + 1));
+        a.dirty = true; s.note = "Block aggiunto nella copia di lavoro. Il salvato nel CMS non cambia."; break;
+      case "remove_block":
+        if (!a.working.blocks.length) { s.note = "Nessun Block da rimuovere."; break; }
+        a.working.blocks.pop(); a.dirty = true; s.note = "Ultimo Block rimosso dalla copia di lavoro."; break;
+      case "open_preview": {
+        const t = writePreview(s);
+        s.clientTab = { slug: page().slug, token: t };
+        s.clientView = { at: s.clock, res: renderForPreview(s, page().slug, t) };
+        s.note = "Anteprima scritta in memoria con la copia di lavoro. La tab del Client si è caricata sull'URL con il token."; break; }
+      case "refresh_preview":
+        writePreview(s);
+        s.note = "Snapshot riscritto sotto lo stesso token. La tab del Client non si aggiorna da sola: deve ricaricare."; break;
+      case "save": case "publish": {
+        const p = page();
+        p.title = a.working.title; p.blocks = [...a.working.blocks]; a.dirty = false;
+        if (act.type === "publish") p.status = "Published";
+        const e = a.token && s.previews[a.token]; if (e) e.snapshot = structuredClone(a.working);
+        s.note = act.type === "publish" ? "Salvata e Published: ora i Visitatori la possono vedere."
+          : p.status === "Published" ? "Salvato: la Page Published è online subito." : "Salvato: la Page è in Draft, i Visitatori non la vedono.";
+        break; }
+      case "unpublish": page().status = "Draft"; s.note = "Page riportata in Draft. Le modifiche non salvate restano non salvate."; break;
+      case "discard": {
+        const p = page(); a.working = { title: p.title, blocks: [...p.blocks] }; a.dirty = false;
+        if (a.token) delete s.previews[a.token]; a.token = null;
+        s.note = "Modifiche scartate e token eliminato. La tab del Client mostra ancora l'ultimo caricamento."; break; }
+      case "advance": s.clock += 31; s.note = "Orologio avanzato di 31 minuti."; break;
+      case "visitor_open": {
+        const slug = byId(s, act.id).slug;
+        s.visitorView = { slug, at: s.clock, res: renderForVisitor(s, slug) };
+        s.note = "Il Visitatore ha caricato la Page: il frontend ha letto i dati salvati."; break; }
+      case "client_reload":
+        if (!s.clientTab) { s.note = "Il Client non ha nessuna tab di anteprima aperta."; break; }
+        s.clientView = { at: s.clock, res: renderForPreview(s, s.clientTab.slug, s.clientTab.token) };
+        s.note = "Il Client ha ricaricato la tab: il frontend ha riletto l'API con il token."; break;
+    }
+    return s;
+  }
+  return { initial, reduce, renderForVisitor, renderForPreview, clockText, isExpired, TTL };
+})();
+</script>
+
+<script id="shell">
+const esc = t => String(t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const $ = id => document.getElementById(id);
+let state = Anteprima.initial(), prevRows = null, curRows, tab = 0, pos = 0;
+
+const WALK = [
+  { name: "Page in Draft",
+    desc: "Il Client prepara «Nuovo servizio», ancora in Draft.",
+    watch: "Il Client la vede nell'anteprima. Il Visitatore riceve 404 e la voce di Menu è nascosta. Dopo Pubblica la vede anche lui.",
+    steps: [["Apri «Nuovo servizio» nell'admin", { type: "open_page", id: 4 }], ["Aggiungi Block", { type: "add_block" }],
+      ["Apri anteprima", { type: "open_preview" }], ["Visitatore apre «Nuovo servizio»", { type: "visitor_open", id: 4 }],
+      ["Pubblica", { type: "publish" }], ["Visitatore apre «Nuovo servizio»", { type: "visitor_open", id: 4 }]] },
+  { name: "Modifica non salvata a una Page Published",
+    desc: "Il Client cambia il titolo di «Servizi», già Published, senza salvare.",
+    watch: "Il Client vede il titolo nuovo, il Visitatore quello vecchio. Dopo Salva la modifica è online subito, senza Draft.",
+    steps: [["Apri «Servizi» nell'admin", { type: "open_page", id: 2 }], ["Modifica titolo", { type: "edit_title" }],
+      ["Apri anteprima", { type: "open_preview" }], ["Visitatore apre «Servizi»", { type: "visitor_open", id: 2 }],
+      ["Salva", { type: "save" }], ["Visitatore apre «Servizi»", { type: "visitor_open", id: 2 }]] },
+  { name: "Anteprima vecchia",
+    desc: "Il Client modifica due volte il titolo ma aggiorna l'anteprima solo dopo.",
+    watch: "L'anteprima è uno snapshot, non una vista live: dopo il ricarico vede il titolo vecchio. Serve Aggiorna anteprima.",
+    steps: [["Apri «Servizi» nell'admin", { type: "open_page", id: 2 }], ["Modifica titolo", { type: "edit_title" }],
+      ["Apri anteprima", { type: "open_preview" }], ["Modifica titolo (senza aggiornare l'anteprima)", { type: "edit_title" }],
+      ["Client ricarica la tab anteprima", { type: "client_reload" }], ["Aggiorna anteprima", { type: "refresh_preview" }],
+      ["Client ricarica la tab anteprima", { type: "client_reload" }]] },
+  { name: "Token scaduto",
+    desc: "Il Client lascia aperta la tab per più di 30 minuti.",
+    watch: "Il token scade e la tab mostra «Anteprima scaduta». L'anteprima si riapre solo dall'admin.",
+    steps: [["Apri «Servizi» nell'admin", { type: "open_page", id: 2 }], ["Apri anteprima", { type: "open_preview" }],
+      ["Avanza orologio di 31 minuti", { type: "advance" }], ["Client ricarica la tab anteprima", { type: "client_reload" }]] },
+  { name: "Figlia di una Page in Draft",
+    desc: "Il Client riporta in Draft «Servizi», che ha come figlia «Consulenza».",
+    watch: "Il Visitatore riceve 404 anche per la figlia. Il Client invece la vede in anteprima: caso da decidere.",
+    steps: [["Apri «Servizi» nell'admin", { type: "open_page", id: 2 }], ["Riporta in Draft", { type: "unpublish" }],
+      ["Visitatore apre «Consulenza»", { type: "visitor_open", id: 3 }], ["Apri «Consulenza» nell'admin", { type: "open_page", id: 3 }],
+      ["Apri anteprima", { type: "open_preview" }]] },
+];
+
+// Una riga è evidenziata se il suo contenuto non c'era nel render precedente.
+function R(panel, html) {
+  curRows[panel].add(html);
+  const isNew = prevRows && !prevRows[panel].has(html);
+  return `<div class="row${isNew ? " new" : ""}">${html}</div>`;
+}
+const panel = (title, body) => {
+  const changed = (body.match(/class="row new"/g) || []).length;
+  return `<div class="panel"><h3>${title}${changed ? '<span class="chg">cambiato</span>' : ""}</h3>${body}</div>`;
+};
+const status = st => `<span class="badge${st === "Published" ? " pub" : ""}">${st}</span>`;
+const blocks = b => b.length ? esc(b.join(", ")) : '<span class="muted">nessun Block</span>';
+const T = Anteprima.clockText;
+
+function viewHtml(key, url, v) {
+  if (!v) return '<p class="muted">Nessuna pagina caricata.</p>';
+  const r = v.res;
+  let h = `<div class="browser">` + R(key, `<span class="k">URL</span> <code>${esc(url)}</code>`) +
+    R(key, `<span class="k">Caricata alle</span> ${T(v.at)}`);
+  if (r.kind === "expired") h += R(key, `<b class="err">${esc(r.message)}</b>`);
+  else if (r.kind === "404") h += R(key, '<b class="err">404 · Pagina non trovata</b>');
+  else {
+    h += R(key, `<span class="k">Titolo</span> <b>${esc(r.title)}</b>`) + R(key, `<span class="k">Blocks</span> ${blocks(r.blocks)}`);
+    if (r.sitemap) h += R(key, `<span class="k">Sitemap</span> ${esc(r.sitemap.join("  "))}`);
+    if (r.visitorKind) h += R(key, `<span class="k">Ai Visitatori questa Page appare</span> ${r.visitorKind === "404" ? '<b class="err">404</b>' : "normale"}`);
+    for (const q of r.openQuestions || []) h += R(key, `<span class="tbd">da decidere</span> ${q === "menu"
+      ? "la voce di Menu della Page in anteprima è mostrata anche se i Visitatori non la vedono"
+      : "la Page è figlia di una Page in Draft: i Visitatori ricevono 404, ma l'anteprima la mostra"}`);
+  }
+  if (r.menu) {
+    h += r.menu.length ? r.menu.map(m => R(key, `<span class="k">Menu</span> ${esc(m.label)} <code>${esc(m.slug)}</code>` +
+      (m.forced ? ' <span class="tbd">da decidere</span>' : ""))).join("") : R(key, '<span class="k">Menu</span> <span class="muted">vuoto</span>');
+  }
+  return h + "</div>";
+}
+
+function render() {
+  const s = state;
+  curRows = { saved: new Set(), admin: new Set(), prev: new Set(), client: new Set(), visitor: new Set() };
+  const depth = p => p.parentId == null ? 0 : 1 + depth(s.pages.find(q => q.id === p.parentId));
+  const saved = s.pages.map(p => R("saved", `${"— ".repeat(depth(p))}<b>${esc(p.title)}</b> <code>${esc(p.slug)}</code> ${status(p.status)}<br><span class="muted">Blocks: ${blocks(p.blocks)}</span>`)).join("") +
+    R("saved", `<span class="k">Menu main</span> ${s.menu.map(id => esc(s.pages.find(p => p.id === id).title)).join(", ")}`);
+  const a = s.admin;
+  const admin = a.pageId == null ? '<p class="muted">Nessuna Page aperta.</p>' :
+    R("admin", `<span class="k">Page aperta</span> <b>${esc(s.pages.find(p => p.id === a.pageId).title)}</b>`) +
+    R("admin", `<span class="k">Titolo (copia di lavoro)</span> ${esc(a.working.title)}`) +
+    R("admin", `<span class="k">Blocks (copia di lavoro)</span> ${blocks(a.working.blocks)}`) +
+    R("admin", `<span class="k">Modifiche non salvate</span> <b>${a.dirty ? "sì" : "no"}</b>`) +
+    R("admin", `<span class="k">Token della sessione</span> ${a.token ? `<code>${a.token}</code>` : "nessuno"}`);
+  const toks = Object.entries(s.previews);
+  const prev = R("prev", `<span class="k">Orologio simulato</span> ${T(s.clock)}`) +
+    (toks.length ? toks.map(([t, e]) => {
+      const exp = Anteprima.isExpired(s, e);
+      return R("prev", `<code>${t}</code> · Page «${esc(s.pages.find(p => p.id === e.pageId).title)}» · ` +
+        (exp ? '<b class="err">scaduto</b>' : `scade alle ${T(e.expiresAt)} (tra ${e.expiresAt - s.clock} min)`)) +
+        R("prev", `<span class="k">Snapshot</span> ${esc(e.snapshot.title)} · ${blocks(e.snapshot.blocks)}`);
+    }).join("") : '<p class="muted">Nessun token in memoria.</p>');
+  const ct = s.clientTab;
+  const client = viewHtml("client", ct ? `${ct.slug}?preview=${ct.token}` : "", s.clientView) +
+    '<div class="legend">Le altre Page e il Menu usano i dati salvati. La voce di Menu della Page in anteprima è mostrata anche se nascosta ai Visitatori: <span class="tbd">da decidere</span></div>';
+  const visitor = viewHtml("visitor", s.visitorView ? s.visitorView.slug : "", s.visitorView) +
+    '<div class="legend">Un token di anteprima non cambia mai ciò che vede il Visitatore.</div>';
+
+  $("bar").innerHTML = `<b>Ultima azione</b><span>${esc(s.note)}</span>`;
+  $("panels").innerHTML = panel("Salvato nel CMS", saved) +
+    panel(`Admin (copia di lavoro, modifiche non salvate: ${a.dirty ? "sì" : "no"})`, admin) +
+    panel("Anteprima in memoria (token, scade alle…)", prev) +
+    panel("Cosa vede il Client nella tab anteprima", client) +
+    panel("Cosa vede il Visitatore", visitor);
+  prevRows = curRows;
+
+  const w = WALK[tab];
+  $("tabs").innerHTML = WALK.map((x, i) => `<button data-tab="${i}" class="${i === tab ? "on" : ""}">${i + 1}. ${esc(x.name)}</button>`).join("");
+  $("walk").innerHTML = `<b>${esc(w.name)}</b><p>${esc(w.desc)}</p><p class="watch">Da osservare: ${esc(w.watch)}</p><ol>` +
+    w.steps.map((st, i) => `<li><button data-step="${i}" class="${i === pos ? "go" : ""}" ${i === pos ? "" : "disabled"}>${i < pos ? "✓ " : i + 1 + ". "}${esc(st[0])}</button></li>`).join("") +
+    `</ol><p><button data-tab="${tab}">Ricomincia questo percorso</button></p>`;
+}
+
+function renderFree() {
+  const opts = state.pages.map(p => `<option value="${p.id}">${esc(p.slug)}</option>`).join("");
+  const b = (t, label, cls) => `<button data-t="${t}" ${cls ? `class="${cls}"` : ""}>${label}</button>`;
+  $("free").innerHTML =
+    `<div class="group"><span class="k">Admin del Client</span><select id="selA">${opts}</select><button data-t="open_page" data-sel="selA">Apri Page nell'admin</button>` +
+    b("edit_title", "Modifica titolo") + b("add_block", "Aggiungi Block") + b("remove_block", "Rimuovi ultimo Block") + `</div>` +
+    `<div class="group"><span class="k">Anteprima e salvataggio</span>` + b("open_preview", "Apri anteprima") + b("refresh_preview", "Aggiorna anteprima") +
+    b("save", "Salva") + b("publish", "Pubblica") + b("unpublish", "Riporta in Draft") + b("discard", "Scarta modifiche") + `</div>` +
+    `<div class="group"><span class="k">Tempo e spettatori</span>` + b("advance", "Avanza orologio di 31 minuti") +
+    `<select id="selV">${opts}</select><button data-t="visitor_open" data-sel="selV">Visitatore apre la Page</button>` + b("client_reload", "Client ricarica la tab anteprima") + `</div>`;
+}
+
+function reset(t) { state = Anteprima.initial(); prevRows = null; tab = t; pos = 0; render(); }
+
+document.addEventListener("click", e => {
+  const el = e.target.closest("button"); if (!el) return;
+  const d = el.dataset;
+  if (d.tab !== undefined) return reset(+d.tab);
+  let act = null;
+  if (d.t) { act = { type: d.t }; if (d.sel) act.id = +$(d.sel).value; }
+  else if (d.step !== undefined && +d.step === pos) { act = WALK[tab].steps[pos][1]; pos++; }
+  if (act) { state = Anteprima.reduce(state, act); render(); }
+});
+
+renderFree();
+reset(0);
+</script>
+</body>
+</html>
